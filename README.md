@@ -12,4 +12,4 @@ Pipeline GitHub Actions:
 - Cache: `valdegor/cache-zad2:cache`
 
 ## Skaner bezpieczeństwa:
-- Trivy (`aquasecurity/trivy-action`)
+- Github Scout
