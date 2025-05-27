@@ -52,7 +52,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           cache-from: type=registry,ref=${{ env.CACHE_REPO }}:cache
           cache-to: type=registry,ref=${{ env.CACHE_REPO }}:cache,mode=max
-          outputs: type=docker,dest=/tmp/app-image.tar
+          outputs: type=oci,dest=/tmp/app-image.oci
 
       - name: Scan image via Docker Scout
         uses: docker/scout-action@v1
