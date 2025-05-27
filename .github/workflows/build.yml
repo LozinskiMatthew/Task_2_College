@@ -1,0 +1,75 @@
+name: Docker Image CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_container_image:
+    name: Build, Scan and Push Image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      REGISTRY_IMAGE: ghcr.io/matthewl72483/labs
+      CACHE_REPO: matthewl72483/task2_cache
+      IMAGE_TAG: latest
+
+    steps:
+      - name: Check the source code
+        uses: actions/checkout@v4
+
+      - name: Setup QEMU for arm64
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx (multiarch builder)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: matthewl72483
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build from cache
+        id: build_step
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ env.REGISTRY_IMAGE }}:${{ env.IMAGE_TAG }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=registry,ref=${{ env.CACHE_REPO }}:cache
+          cache-to: type=registry,ref=${{ env.CACHE_REPO }}:cache,mode=max
+          outputs: type=docker,dest=/tmp/app-image.tar
+
+      - name: Scan image via Docker Scout
+        uses: docker/scout-action@v1
+        with:
+          image: /tmp/app-image.tar
+          sarif-file: scout-results.sarif
+          only-severities: critical,high
+          exit-code: 1
+
+      - name: Send report from Docker Scout
+        uses: actions/upload-artifact@v4
+        with:
+          name: scout-cve-report
+          path: scout-results.sarif
+
+      - name: Push to GHCR if no errors
+        if: success()
+        run: |
+          docker load -i /tmp/app-image.tar
+          docker push $REGISTRY_IMAGE:$IMAGE_TAG
