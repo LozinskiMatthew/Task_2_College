@@ -20,53 +20,57 @@ jobs:
       IMAGE_TAG: latest
 
     steps:
-      - name: 📦 Checkout source code
+      - name: Check the source code
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup QEMU for arm64
+      - name: Setup QEMU for arm64
         uses: docker/setup-qemu-action@v3
 
-      - name: 🏗️ Setup Docker Buildx (multiarch)
+      - name: Setup Docker Buildx (multiarch builder)
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔐 Log in to GitHub Container Registry (GHCR)
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔐 Log in to DockerHub for cache
+      - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
           username: matthewl72483
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 🛠️ Build and push image (multiarch + cache)
+      - name: Build from cache
+        id: build_step
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push: false
           tags: ${{ env.REGISTRY_IMAGE }}:${{ env.IMAGE_TAG }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=registry,ref=${{ env.CACHE_REPO }}:cache
           cache-to: type=registry,ref=${{ env.CACHE_REPO }}:cache,mode=max
+          outputs: type=oci,dest=/tmp/app-image.oci
 
-      - name: 🧪 Scan image via Docker Scout (CVE check)
-        uses: docker/scout-action@v1
+      - name: Scan image with Trivy (CVE check)
+        uses: aquasecurity/trivy-action@master
         with:
-          command: cves
-          image: ${{ env.REGISTRY_IMAGE }}:${{ env.IMAGE_TAG }}
-          sarif-file: scout-results.sarif
-          only-severities: critical,high
+          image-ref: /tmp/app-image.oci
+          format: table
           exit-code: 1
-          summary: true
-          format: json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          write-comment: true
+          severity: CRITICAL,HIGH
+          output: trivy_report.txt
 
-      - name: 📤 Upload Docker Scout CVE report
+      - name: Upload Trivy CVE Report
         uses: actions/upload-artifact@v4
         with:
-          name: scout-cve-report
-          path: scout-results.sarif
+          name: trivy-cve-report
+          path: trivy_report.txt
+
+      - name: Push to GHCR if image is safe
+        if: success()
+        run: |
+          docker load -i /tmp/app-image.oci
+          docker push $REGISTRY_IMAGE:$IMAGE_TAG
