@@ -54,6 +54,8 @@ jobs:
           cache-to: type=registry,ref=${{ env.CACHE_REPO }}:cache,mode=max
           outputs: type=oci,dest=/tmp/app-image.oci
 
+      - name: Load image for scanning
+        run: docker load -i /tmp/app-image.oci
 
       - name: Scan image with Trivy (CVE check)
         uses: aquasecurity/trivy-action@master
