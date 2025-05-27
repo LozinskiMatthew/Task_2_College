@@ -57,10 +57,16 @@ jobs:
       - name: Scan image via Docker Scout
         uses: docker/scout-action@v1
         with:
-          image: /tmp/app-image.tar
+          image: /tmp/app-image.oci
+          command: cves
           sarif-file: scout-results.sarif
           only-severities: critical,high
           exit-code: 1
+          summary: true
+          format: json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          write-comment: true
+
 
       - name: Send report from Docker Scout
         uses: actions/upload-artifact@v4
