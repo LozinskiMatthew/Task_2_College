@@ -42,20 +42,17 @@ jobs:
           username: matthewl72483
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build from cache
+      - name: Build and push multiarch image
         id: build_step
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: false
+          push: true
           tags: ${{ env.REGISTRY_IMAGE }}:${{ env.IMAGE_TAG }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=registry,ref=${{ env.CACHE_REPO }}:cache
           cache-to: type=registry,ref=${{ env.CACHE_REPO }}:cache,mode=max
-          outputs: type=oci,dest=/tmp/app-image.oci
 
-      - name: Load image for scanning
-        run: docker load -i /tmp/app-image.oci
 
       - name: Scan image with Trivy (CVE check)
         uses: aquasecurity/trivy-action@master
@@ -65,6 +62,7 @@ jobs:
           exit-code: 1
           severity: CRITICAL,HIGH
           output: trivy_report.txt
+
 
       - name: Upload Trivy CVE Report
         uses: actions/upload-artifact@v4
