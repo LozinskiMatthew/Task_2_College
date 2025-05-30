@@ -67,7 +67,7 @@ jobs:
           name: trivy-cve-report
           path: trivy_report.txt
 
-      - name: Build, push multiarch image
+      - name: Build, push multiarch image xDDD
         if: success()
         uses: docker/build-push-action@v5
         with:
