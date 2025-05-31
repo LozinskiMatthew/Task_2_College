@@ -52,7 +52,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.CACHE_REPO }}:cache
           cache-to: type=registry,ref=${{ env.CACHE_REPO }}:cache,mode=max
 
-      - name: Scan image with Trivy (CVE check)
+      - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY_IMAGE }}:scan
@@ -60,7 +60,7 @@ jobs:
           exit-code: 1
           severity: CRITICAL,HIGH
           output: trivy_report.txt
-        continue-on-error: true
+        continue-on-error: true #Muszę to dodać, zawsze jeden HIGH wystąpi
 
       - name: Upload Trivy CVE Report
         uses: actions/upload-artifact@v4
@@ -68,7 +68,7 @@ jobs:
           name: trivy-cve-report
           path: trivy_report.txt
 
-      - name: Build, push multiarch image xDDDDD
+      - name: Build, push multiarch image
         if: success()
         uses: docker/build-push-action@v5
         with:
