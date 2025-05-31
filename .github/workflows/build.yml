@@ -15,7 +15,7 @@ jobs:
       packages: write
 
     env:
-      REGISTRY_IMAGE: ghcr.io/matthewl72483/labs
+      REGISTRY_IMAGE: ghcr.io/lozinskimatthew/labs
       CACHE_REPO: matthewl72483/task2_cache
       IMAGE_TAG: latest
 
